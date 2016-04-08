@@ -7,6 +7,11 @@ the file BUILDING.txt in this directory.
 
 
 
+# Requirement
+The installation of phyml requires libtool and autoconf packages. The provided
+install script will check for them and try to install them in case they are
+missing using one of the following package managers: brew, yum or apt-get.
+
 
 # Installation 
 

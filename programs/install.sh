@@ -18,8 +18,11 @@ rm $INSTALL_DIR/phyml{,.exe} $INSTALL_DIR/raxml{,.exe}
 # and get version number
 PHYML_INSTALL=1
 PHYML_VERSION=$(phyml --version 2>&1)
+PHYML_ALT_PATH=''
 
-if [[ "${PHYML_VERSION}" == *"PhyML version"* ]]; then
+if [[ "${PHYML_VERSION}" == *"PhyML version"* ]]; then 
+	# user defined installatino of phyml in case un-tested
+	# phyml version was found
     if [[ "${PHYML_VERSION}" != *"PhyML version 20160326"* ]]; then
         while true; do
             read -p "Found un-tested phyml version. Do you want to install version 20160325 in the partitionfinder directory [Yn]?" yn
@@ -30,7 +33,23 @@ if [[ "${PHYML_VERSION}" == *"PhyML version"* ]]; then
             esac
         done
     fi
+else
+	# check for user-defined non-standard phyml install
+	while true; do
+		read -p "PhyML not found in standard path. Type path to phyml-executable or hit enter to install phyml: " p
+		case $p in
+			*/phyml ) PHYML_ALT_PATH=$p; PHYML_INSTALL=0; break;;
+			* ) "Installing phyml"; break;;
+		esac
+	done
 fi
+
+
+# create symlink to non-standard phyml installation
+if [[ $PHYML_ALT_PATH ]]; then
+	ln -s $PHYML_ALT_PATH $INSTALL_DIR
+fi	
+
 
 
 # check for brew/yum/apt-get
@@ -76,7 +95,12 @@ if [[ "${PHYML_INSTALL}" == 1 ]]; then
     TMP_DIR=$INSTALL_DIR/tmp
     mkdir $TMP_DIR
     cd $TMP_DIR
-    wget https://github.com/stephaneguindon/phyml/archive/7be3a4cb04eae72d9309a34a4727938371909200.zip
+    wget --no-check-certificate https://github.com/stephaneguindon/phyml/archive/7be3a4cb04eae72d9309a34a4727938371909200.zip
+
+	if [[ $? != "0" ]]; then
+		exit
+	fi
+
     unzip ./7be3a4cb04eae72d9309a34a4727938371909200.zip
     cd ./phyml-7be3a4cb04eae72d9309a34a4727938371909200 
 
@@ -96,27 +120,39 @@ fi
 # If so, set symlink to installed version
 if [[ $(command -v raxmlHPC-AVX2) ]]; then
     RAXML_HPC=$(command -v raxmlHPC-AVX2)
-#    ln -s ${RAXML_HPC} ${INSTALL_DIR}/raxml
-    break;
+    ln -s ${RAXML_HPC} ${INSTALL_DIR}/raxml
 elif [[ $(command -v raxmlHPC-SSE3) ]]; then
     RAXML_HPC=$(command -v raxmlHPC-SSE3)
     ln -s ${RAXML_HPC} ${INSTALL_DIR}/raxml
+else
+	while true; do
+		read -p "No RAxML (non-threaded) found. Please give path to non-standard RAxML executable or hit enter to install RAxML: " rax
+		case $rax in
+			*/* ) ln -s $rax ${INSTALL_DIR}/raxml; break;;
+		esac	
+	done
 fi
 
 if [[ $(command -v raxmlHPC-PTHREADS-AVX2) ]]; then
     RAXML_THREADED=$(command -v raxmlHPC-PTHREADS-AVX2)
-#    ln -s ${RAXML_THREADED} ${INSTALL_DIR}/raxml_thread
-    break;
+    ln -s ${RAXML_THREADED} ${INSTALL_DIR}/raxml_thread
 elif [[ $(command -v raxmlHPC-PTHREADS-SSE3) ]]; then
     RAXML_THREADED=$(command -v raxmlHPC-PTHREADS-SSE3)
     ln -s ${RAXML_THREADED} ${INSTALL_DIR}/raxml_threaded
+else
+    while true; do
+        read -p "No RAxML (threaded) found. Please give path to non-standard RAxML executable or hit enter to install RAxML: " rax    
+        case $rax in
+            */* ) ln -s $rax ${INSTALL_DIR}/raxml_threaded; break;;
+        esac   
+    done
 fi
 
 if [[ ! $(command -v ${INSTALL_DIR}/raxml) ]]; then
     TMP_DIR=$INSTALL_DIR/tmp
     mkdir $TMP_DIR
     cd $TMP_DIR
-    wget https://github.com/stamatak/standard-RAxML/archive/68c878e90f55c29e67b6bdd9ad336f9439c70cdd.zip
+    wget --no-check-certificate https://github.com/stamatak/standard-RAxML/archive/68c878e90f55c29e67b6bdd9ad336f9439c70cdd.zip
     unzip ./68c878e90f55c29e67b6bdd9ad336f9439c70cdd.zip
     cd standard-RAxML-68c878e90f55c29e67b6bdd9ad336f9439c70cdd
    
